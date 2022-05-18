@@ -24,44 +24,40 @@ const app = express();
 
 app.use(cors());
 
-app.get('/', (req, res)=>{
-    res.send('hello');
+app.get('/', async(req, res) => {
+    if (typeof shops[req.query.shop] !== 'undefined') {
+        res
+    } else {
+        res.redirect(`/login?shop=${req.query.shop}`);
+    }
+});
+
+app.get('/login', async(req, res) => {
+    const authRoute = await Shopify.Auth.beginAuth(
+        req,
+        res,
+        req.query.shop,
+        '/auth/callback',
+        false,
+    )
+    res.redirect(authRoute);
 })
 
-// app.get('/', async(req, res) => {
-//     if (typeof shops[req.query.shop] !== 'undefined') {
-//         res
-//     } else {
-//         res.redirect(`/login?shop=${req.query.shop}`);
-//     }
-// });
+app.get('/auth/callback', async(req, res) => {
+    const session = await Shopify.Auth.validateAuthCallback(
+        req,
+        res,
+        req.query
+      );
 
-// app.get('/login', async(req, res) => {
-//     const authRoute = await Shopify.Auth.beginAuth(
-//         req,
-//         res,
-//         req.query.shop,
-//         '/auth/callback',
-//         false,
-//     )
-//     res.redirect(authRoute);
-// })
+    const client = new Shopify.Clients.Rest(session.shop, session.accessToken);
 
-// app.get('/auth/callback', async(req, res) => {
-//     const session = await Shopify.Auth.validateAuthCallback(
-//         req,
-//         res,
-//         req.query
-//       );
+    const products = await client.get({
+        path : 'products'
+    });
 
-//     const client = new Shopify.Clients.Rest(session.shop, session.accessToken);
-
-//     const products = await client.get({
-//         path : 'products'
-//     });
-
-//     console.log(products.json());
-// });
+    console.log(products.json());
+});
 
 
 app.listen(port, () => {
